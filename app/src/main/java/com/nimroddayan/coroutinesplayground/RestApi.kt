@@ -1,29 +1,22 @@
 package com.nimroddayan.coroutinesplayground
 
-import java.lang.Exception
-import java.util.concurrent.ExecutorService
+import io.reactivex.Completable
+import io.reactivex.Single
 
-class RestApi(
-    private val ioExecutor: ExecutorService
-) : DataSource {
+class RestApi : DataSource {
     private val db = mutableListOf<Tweet>()
 
-    override fun saveTweets(tweets: List<Tweet>, onResult: (isSuccess: Boolean, error: Exception?) -> Unit) {
-        ioExecutor.execute {
+    override fun saveTweets(tweets: List<Tweet>): Completable {
+        return Completable.fromAction {
             Thread.sleep(500L)
             db += tweets
-            onResult(true, null)
         }
     }
 
-    override fun getTweets(onResult: (isSuccess: Boolean, error: Exception?, tweets: List<Tweet>) -> Unit) {
-        ioExecutor.execute {
+    override fun getTweets(): Single<List<Tweet>> {
+        return Single.fromCallable {
             Thread.sleep(500L)
-            onResult(true, null, db)
+            db
         }
-    }
-
-    override fun close() {
-        ioExecutor.shutdownNow()
     }
 }

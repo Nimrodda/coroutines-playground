@@ -2,6 +2,10 @@ package com.nimroddayan.coroutinesplayground
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import io.reactivex.Single
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.schedulers.Schedulers
 
 class MainViewModel(
     private val database: Database,
@@ -11,40 +15,29 @@ class MainViewModel(
         get() = _dataLoadedEvent
     private val _dataLoadedEvent = MutableLiveData<List<Tweet>>()
 
+    private val disposables = CompositeDisposable()
+
     fun loadData() {
-        database.getTweets { isSuccess, error, tweets ->
-            if (isSuccess) {
-                if (tweets.isEmpty()) {
-                    server.getTweets { isSuccess, error, tweets ->
-                        if (isSuccess) {
-                            if (tweets.isEmpty()) {
-                                // Report no tweets available
-                                _dataLoadedEvent.value = emptyList()
-                            } else {
-                                database.saveTweets(tweets) { isSuccess, error ->
-                                    if (isSuccess) {
-                                        // Successfully persisted locally - Happiness :D
-                                    } else {
-                                        // log error
-                                    }
-                                }
-                                _dataLoadedEvent.value = tweets
-                            }
-                        } else {
-                            // report error
+        disposables.add(database.getTweets()
+            .flatMap {
+                if (it.isEmpty()) {
+                    server.getTweets()
+                        .flatMap { serverTweets ->
+                            database.saveTweets(serverTweets)
+                                .onErrorComplete {
+                                    // Log error
+                                    true
+                                }.toSingleDefault(serverTweets)
                         }
-                    }
                 } else {
-                    _dataLoadedEvent.value = tweets
+                    Single.just(it)
                 }
-            } else {
-                // report error
-            }
-        }
+            }.subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(_dataLoadedEvent::setValue, {/* report error */}))
     }
 
     override fun onCleared() {
-        database.close()
-        server.close()
+        disposables.clear()
     }
 }
