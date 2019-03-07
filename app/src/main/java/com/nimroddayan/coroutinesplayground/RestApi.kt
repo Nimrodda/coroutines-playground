@@ -1,29 +1,25 @@
 package com.nimroddayan.coroutinesplayground
 
-import java.lang.Exception
-import java.util.concurrent.ExecutorService
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 class RestApi(
-    private val ioExecutor: ExecutorService
+    private val ioDispatcher: CoroutineDispatcher
 ) : DataSource {
     private val db = mutableListOf<Tweet>()
 
-    override fun saveTweets(tweets: List<Tweet>, onResult: (isSuccess: Boolean, error: Exception?) -> Unit) {
-        ioExecutor.execute {
-            Thread.sleep(500L)
-            db += tweets
-            onResult(true, null)
-        }
+    override suspend fun saveTweets(tweets: List<Tweet>) = withContext(ioDispatcher) {
+        delay(500L)
+        db += tweets
     }
 
-    override fun getTweets(onResult: (isSuccess: Boolean, error: Exception?, tweets: List<Tweet>) -> Unit) {
-        ioExecutor.execute {
-            Thread.sleep(500L)
-            onResult(true, null, db)
+    override suspend fun getTweets(): Result<List<Tweet>> = withContext(ioDispatcher) {
+        try {
+            delay(500L)
+            return@withContext Result.Success(db)
+        } catch (e: Exception) {
+            return@withContext Result.Error(e)
         }
-    }
-
-    override fun close() {
-        ioExecutor.shutdownNow()
     }
 }
