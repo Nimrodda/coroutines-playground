@@ -2,10 +2,7 @@ package com.nimroddayan.coroutinesplayground
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.lang.Exception
 import kotlin.coroutines.CoroutineContext
 
@@ -47,6 +44,24 @@ class MainViewModel(
                     _dataLoadedEvent.value = emptyList()
                 }
             }
+        }
+    }
+
+    fun loadDataParallel() {
+        launch {
+            // Here I demonstrate how to run coroutines in parallel
+            // Both database.getTweets() and server.getTweets() will run
+            // concurrently unlike the example above in loadData()
+            // where they're run sequentially.
+            val localTweets = async { database.getTweets() }
+            val serverTweets = async { server.getTweets() }
+
+            // One way to handle errors is to wrap the data in a Result
+            // sealed class which will contain the data or error
+            val tweets = mutableListOf<Tweet>()
+            tweets += (localTweets.await() as? Result.Success)?.data ?: emptyList()
+            tweets += (serverTweets.await() as? Result.Success)?.data ?: emptyList()
+            _dataLoadedEvent.value = tweets
         }
     }
 
