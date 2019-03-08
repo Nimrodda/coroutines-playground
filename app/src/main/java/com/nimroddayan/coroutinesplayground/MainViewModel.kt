@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
 
 class MainViewModel(
@@ -33,6 +34,19 @@ class MainViewModel(
                     Single.just(it)
                 }
             }.subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(_dataLoadedEvent::setValue, {/* report error */}))
+    }
+
+    fun loadParallel() {
+        disposables.add(
+            Single.zip(
+                database.getTweets(),
+                server.getTweets(),
+                BiFunction<List<Tweet>, List<Tweet>, List<Tweet>> { local, server ->
+                    local + server
+                })
+            .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(_dataLoadedEvent::setValue, {/* report error */}))
     }
