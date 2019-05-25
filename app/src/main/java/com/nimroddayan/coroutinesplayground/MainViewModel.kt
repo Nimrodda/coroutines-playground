@@ -2,26 +2,21 @@ package com.nimroddayan.coroutinesplayground
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.*
-import java.lang.Exception
-import kotlin.coroutines.CoroutineContext
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val database: Database,
     private val server: RestApi
-) : ViewModel(), CoroutineScope {
+) : ViewModel() {
 
     val dataLoadedEvent: MutableLiveData<List<Tweet>>
         get() = _dataLoadedEvent
     private val _dataLoadedEvent = MutableLiveData<List<Tweet>>()
 
-    private val job = SupervisorJob()
-
-    override val coroutineContext: CoroutineContext
-        get() = job + Dispatchers.Main
-
     fun loadData() {
-        launch {
+        viewModelScope.launch {
             val localTweets = database.getTweets()
             // One way to handle errors is to wrap the data in a Result
             // sealed class which will contain the data or error
@@ -47,7 +42,7 @@ class MainViewModel(
         }
     }
 
-    fun loadDataParallel() = launch {
+    fun loadDataParallel() = viewModelScope.launch {
         // Here I demonstrate how to run coroutines in parallel
         // Both database.getTweets() and server.getTweets() will run
         // concurrently unlike the example above in loadData()
@@ -62,9 +57,4 @@ class MainViewModel(
         tweets += (serverTweets.await() as? Result.Success)?.data ?: emptyList()
         _dataLoadedEvent.value = tweets
     }
-}
-
-override fun onCleared() {
-    job.cancel()
-}
 }
