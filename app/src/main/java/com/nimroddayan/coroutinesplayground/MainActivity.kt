@@ -32,14 +32,14 @@ class MainActivity : AppCompatActivity() {
         transition.addListener(onEnd = {
             replay()
         })
-        container.setOnClickListener {
-            replay()
-        }
         val viewModel = ViewModelProviders.of(this, ViewModelFactory).get(MainViewModel::class.java)
         viewModel.dataLoadedEvent.observe(this, Observer { dataset ->
             // Update UI
         })
-        viewModel.loadData()
+        container.setOnClickListener {
+            replay()
+            viewModel.loadData()
+        }
     }
 
     private fun replay() {

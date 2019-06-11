@@ -22,7 +22,7 @@ android {
 }
 
 ext {
-    coroutineVersion = "1.2.1"
+    coroutineVersion = "1.3.0-M1"
     lifecycleVersion = "2.2.0-alpha01"
 }
 
